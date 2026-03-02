@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JARVIS — Task Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --white:#ffffff; --off-white:#f7f9fc;
+  --blue-50:#eff6ff; --blue-100:#dbeafe; --blue-200:#bfdbfe;
+  --blue-400:#60a5fa; --blue-600:#2563eb; --blue-700:#1d4ed8;
+  --blue-800:#1e40af; --blue-900:#1e3a8a;
+  --text:#1e3a8a; --text-light:#3b5fb5; --text-muted:#6b8ec9;
+  --border:#dbeafe;
+  --shadow:0 1px 3px rgba(30,58,138,.08),0 4px 16px rgba(30,58,138,.06);
+  --shadow-lg:0 8px 32px rgba(30,58,138,.12),0 2px 8px rgba(30,58,138,.08);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:'DM Sans',sans-serif;background:var(--white);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6;}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100vh;}
+.screen.active{display:block;}
+
+/* ══ LOGIN ══ */
+#login-screen{
+  background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 40%,#bfdbfe 100%);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  position:relative;overflow:hidden;
+}
+#login-screen::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 60% 40% at 20% 20%,rgba(37,99,235,.1) 0%,transparent 60%),
+             radial-gradient(ellipse 40% 60% at 80% 80%,rgba(30,58,138,.08) 0%,transparent 60%);
+}
+#login-screen::after{
+  content:'JARVIS';position:absolute;bottom:-60px;right:-20px;
+  font-family:'Playfair Display',serif;font-size:220px;font-weight:900;
+  color:rgba(30,58,138,.04);letter-spacing:-8px;line-height:1;
+  pointer-events:none;user-select:none;
+}
+.login-card{
+  background:rgba(255,255,255,.92);backdrop-filter:blur(20px);
+  border:1px solid rgba(191,219,254,.8);border-radius:24px;
+  padding:52px 48px;width:100%;max-width:440px;
+  box-shadow:var(--shadow-lg);position:relative;z-index:1;
+  animation:fadeUp .5s ease;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.login-logo{font-family:'Playfair Display',serif;font-size:13px;font-weight:700;letter-spacing:6px;text-transform:uppercase;color:var(--blue-600);margin-bottom:8px;}
+.login-title{font-family:'Playfair Display',serif;font-size:36px;font-weight:900;color:var(--blue-900);line-height:1.1;margin-bottom:6px;}
+.login-subtitle{font-size:13px;color:var(--text-muted);margin-bottom:36px;}
+.login-tabs{display:flex;margin-bottom:28px;border-bottom:2px solid var(--border);}
+.login-tab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:600;letter-spacing:.5px;color:var(--text-muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;}
+.login-tab.active{color:var(--blue-600);border-bottom-color:var(--blue-600);}
+.form-group{margin-bottom:16px;}
+.form-label{display:block;font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;}
+input[type=text],input[type=password],input[type=email],input[type=number],input[type=date],input[type=time],input[type=month],textarea,select{
+  width:100%;padding:12px 16px;background:var(--off-white);border:1.5px solid var(--border);
+  border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:all .2s;
+}
+input:focus,textarea:focus,select:focus{border-color:var(--blue-400);background:white;box-shadow:0 0 0 3px rgba(96,165,250,.15);}
+input::placeholder,textarea::placeholder{color:var(--text-muted);}
+select option{background:white;}
+textarea{resize:vertical;min-height:80px;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;border-radius:10px;border:none;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;}
+.btn-primary{background:var(--blue-700);color:white;width:100%;box-shadow:0 4px 14px rgba(29,78,216,.3);}
+.btn-primary:hover{background:var(--blue-800);transform:translateY(-1px);}
+.btn-ghost{background:transparent;color:var(--text-muted);border:1.5px solid var(--border);}
+.btn-ghost:hover{border-color:var(--blue-400);color:var(--blue-600);}
+.btn-sm{padding:8px 16px;font-size:12px;border-radius:8px;width:auto;}
+.error-msg{background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:16px;display:none;}
+.error-msg.show{display:block;}
+.success-msg{background:#dcfce7;border:1px solid #86efac;color:#16a34a;border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:16px;display:none;}
+.success-msg.show{display:block;}
+
+/* ══ NAVBAR ══ */
+#app-screen{background:var(--off-white);}
+.navbar{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);box-shadow:0 1px 8px rgba(30,58,138,.06);}
+.navbar-inner{max-width:1100px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;gap:12px;}
+.nav-logo{font-family:'Playfair Display',serif;font-size:20px;font-weight:900;color:var(--blue-800);letter-spacing:1px;flex-shrink:0;line-height:1;}
+.nav-logo span{color:var(--text-muted);font-size:10px;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:2px;display:block;margin-top:2px;}
+.nav-menu{display:flex;align-items:center;gap:4px;flex:1;}
+.nav-dropdown{position:relative;}
+.nav-dropdown-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:none;background:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--text-muted);cursor:pointer;transition:all .2s;}
+.nav-dropdown-btn:hover,.nav-dropdown-btn.open{color:var(--blue-700);background:var(--blue-50);}
+.nav-dropdown-btn svg{width:14px;height:14px;transition:transform .2s;flex-shrink:0;}
+.nav-dropdown-btn.open svg{transform:rotate(180deg);}
+.nav-dropdown-menu{position:absolute;top:calc(100% + 8px);left:0;background:white;border:1px solid var(--border);border-radius:12px;padding:6px;min-width:180px;box-shadow:var(--shadow-lg);z-index:200;display:none;animation:dropIn .15s ease;}
+@keyframes dropIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.nav-dropdown-menu.open{display:block;}
+.nav-dropdown-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text);transition:background .15s;border:none;background:none;width:100%;text-align:left;}
+.nav-dropdown-item:hover{background:var(--blue-50);color:var(--blue-700);}
+.item-icon{font-size:15px;width:20px;text-align:center;}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.nav-user{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;}
+.nav-avatar{width:32px;height:32px;border-radius:50%;background:var(--blue-700);color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:'Playfair Display',serif;flex-shrink:0;}
+.nav-clock{font-family:'DM Mono',monospace;font-size:12px;color:var(--text-muted);}
+
+/* ══ MAIN ══ */
+.main{max-width:1100px;margin:0 auto;padding:28px 24px 80px;}
+
+/* ══ REMINDERS STRIP ══ */
+.reminders-strip{background:var(--blue-700);color:white;border-radius:14px;padding:14px 20px;margin-bottom:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.reminders-strip-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;opacity:.7;flex-shrink:0;}
+.reminders-strip-items{display:flex;gap:10px;flex-wrap:wrap;flex:1;}
+.reminder-chip{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);border-radius:99px;padding:4px 12px;font-size:12px;font-weight:500;display:flex;align-items:center;gap:6px;}
+.reminders-strip-empty{font-size:13px;opacity:.7;}
+
+/* ══ SCRIPTURE ══ */
+.scripture-card{background:white;border:1px solid var(--border);border-radius:20px;padding:32px 36px;margin-bottom:28px;position:relative;overflow:hidden;box-shadow:var(--shadow);}
+.scripture-card::before{content:'"';position:absolute;top:-20px;left:20px;font-family:'Playfair Display',serif;font-size:200px;color:var(--blue-100);line-height:1;pointer-events:none;user-select:none;}
+.scripture-day{font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--blue-400);margin-bottom:12px;}
+.scripture-verse{font-family:'Playfair Display',serif;font-size:20px;font-style:italic;line-height:1.65;color:var(--blue-900);margin-bottom:10px;position:relative;z-index:1;}
+.scripture-ref{font-size:12px;font-weight:600;color:var(--blue-600);letter-spacing:1px;margin-bottom:20px;}
+.scripture-divider{height:1px;background:var(--border);margin:20px 0;}
+.mantra-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;}
+.mantra-text{font-size:15px;color:var(--text-light);line-height:1.7;font-style:italic;}
+.scripture-loading{display:flex;align-items:center;gap:12px;color:var(--text-muted);font-size:13px;padding:8px 0;}
+.spinner{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--blue-600);animation:spin .8s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ══ TRACK ══ */
+.track-header{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--blue-900);margin-bottom:6px;}
+.track-sub{font-size:13px;color:var(--text-muted);margin-bottom:20px;}
+.category-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:28px;}
+.cat-btn{background:white;border:1.5px solid var(--border);border-radius:14px;padding:16px 12px;text-align:center;cursor:pointer;transition:all .2s;}
+.cat-btn:hover{border-color:var(--blue-400);box-shadow:0 4px 12px rgba(37,99,235,.1);transform:translateY(-2px);}
+.cat-btn.active{border-color:var(--blue-600);background:var(--blue-50);}
+.cat-icon{font-size:24px;margin-bottom:6px;}
+.cat-label{font-size:12px;font-weight:600;color:var(--text);}
+.tracker-panel{background:white;border:1px solid var(--border);border-radius:20px;padding:28px 32px;margin-bottom:20px;display:none;animation:fadeUp .25s ease;box-shadow:var(--shadow);}
+.tracker-panel.open{display:block;}
+.panel-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--blue-900);margin-bottom:4px;}
+.panel-sub{font-size:13px;color:var(--text-muted);margin-bottom:24px;}
+.reminder-subform{background:var(--blue-50);border:1px solid var(--blue-100);border-radius:12px;padding:16px;margin-top:16px;}
+.reminder-subform-title{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--blue-600);margin-bottom:12px;}
+.form-row{display:flex;gap:12px;flex-wrap:wrap;}
+.form-row .form-group{flex:1;min-width:140px;}
+
+/* month tabs */
+.month-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+.month-tab{padding:6px 14px;border-radius:99px;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:white;color:var(--text-muted);cursor:pointer;transition:all .2s;}
+.month-tab.active{background:var(--blue-700);color:white;border-color:var(--blue-700);}
+
+/* health */
+.week-row{background:var(--off-white);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;}
+.week-label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;}
+.day-checks{display:flex;gap:8px;flex-wrap:wrap;}
+.day-check{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
+.day-check input{display:none;}
+.day-check-box{width:38px;height:38px;border-radius:8px;border:2px solid var(--border);background:white;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s;color:transparent;}
+.day-check input:checked ~ .day-check-box{background:var(--blue-700);border-color:var(--blue-700);color:white;}
+.day-check-label{font-size:10px;color:var(--text-muted);font-weight:600;}
+
+/* entries */
+.entry-list{display:flex;flex-direction:column;gap:8px;margin-top:16px;}
+.entry-item{background:var(--off-white);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px;transition:all .2s;}
+.entry-item:hover{border-color:var(--blue-200);}
+.entry-body{flex:1;min-width:0;}
+.entry-title{font-size:14px;font-weight:600;}
+.entry-meta{font-size:11px;color:var(--text-muted);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.entry-note{font-size:12px;color:var(--text-light);margin-top:6px;line-height:1.5;}
+.entry-actions{opacity:0;transition:opacity .2s;}
+.entry-item:hover .entry-actions{opacity:1;}
+.icon-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;border-radius:6px;font-size:14px;}
+.icon-btn:hover{color:#dc2626;background:#fee2e2;}
+.edit-btn:hover{color:var(--blue-600)!important;background:var(--blue-50)!important;}
+
+/* books */
+.book-card{background:var(--off-white);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;transition:all .2s;margin-bottom:8px;}
+.book-card:hover{border-color:var(--blue-200);}
+.book-spine{width:6px;min-height:50px;border-radius:3px;flex-shrink:0;}
+.book-body{flex:1;}
+.book-title{font-size:14px;font-weight:700;}
+.book-author{font-size:12px;color:var(--text-muted);}
+.book-badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:10px;font-weight:700;letter-spacing:1px;margin-top:6px;}
+.badge-reading{background:var(--blue-100);color:var(--blue-700);}
+.badge-finished{background:#dcfce7;color:#16a34a;}
+.badge-wishlist{background:#f3f4f6;color:#6b7280;}
+
+/* tag */
+.tag{display:inline-flex;align-items:center;padding:2px 10px;border-radius:99px;font-size:10px;font-weight:700;}
+.tag-blue{background:var(--blue-100);color:var(--blue-700);}
+.tag-green{background:#dcfce7;color:#16a34a;}
+
+/* modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(30,58,138,.4);backdrop-filter:blur(6px);z-index:300;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:white;border-radius:20px;padding:32px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:fadeUp .2s ease;}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;}
+.modal-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--blue-900);}
+.modal-close{background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:4px;border-radius:6px;}
+.modal-close:hover{background:var(--off-white);}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--blue-200);border-radius:99px;}
+
+/* empty */
+.empty{text-align:center;padding:36px 20px;color:var(--text-muted);font-size:13px;}
+.empty-icon{font-size:32px;margin-bottom:8px;opacity:.5;}
+
+/* responsive */
+@media(max-width:700px){
+  .login-card{padding:36px 24px;}
+  .scripture-card{padding:24px 20px;}
+  .tracker-panel{padding:20px;}
+  .category-grid{grid-template-columns:repeat(3,1fr);}
+  .main{padding:20px 16px 60px;}
+  .navbar-inner{padding:0 16px;}
+  .nav-menu{display:none;}
+  .nav-clock{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="login-screen" class="screen active">
+  <div class="login-card">
+    <div class="login-logo">Jarvis</div>
+    <div class="login-title">Task Tracker</div>
+    <div class="login-subtitle">Your personal productivity companion</div>
+    <div class="login-tabs">
+      <button class="login-tab active" onclick="switchLoginTab('login')">Sign In</button>
+      <button class="login-tab" onclick="switchLoginTab('register')">Create Account</button>
+    </div>
+    <div id="login-error" class="error-msg"></div>
+    <div id="login-success" class="success-msg"></div>
+    <!-- LOGIN -->
+    <div id="login-form">
+      <div class="form-group"><label class="form-label">Username</label><input type="text" id="login-username" placeholder="Enter your username" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="form-group"><label class="form-label">Password</label><input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn btn-primary" onclick="doLogin()" style="margin-top:8px;">Sign In</button>
+    </div>
+    <!-- REGISTER -->
+    <div id="register-form" style="display:none;">
+      <div class="form-group"><label class="form-label">First Name</label><input type="text" id="reg-firstname" placeholder="What should we call you?"></div>
+      <div class="form-group"><label class="form-label">Username</label><input type="text" id="reg-username" placeholder="Choose a username"></div>
+      <div class="form-group"><label class="form-label">Password</label><input type="password" id="reg-password" placeholder="At least 6 characters"></div>
+      <button class="btn btn-primary" onclick="doRegister()" style="margin-top:8px;">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app-screen" class="screen">
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <div class="nav-logo">JARVIS <span>Task Tracker</span></div>
+      <div class="nav-menu">
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-btn" onclick="toggleDropdown(this)">
+            Track Today
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="nav-dropdown-menu">
+            <button class="nav-dropdown-item" onclick="navTo('reading')"><span class="item-icon">📚</span>Reading</button>
+            <button class="nav-dropdown-item" onclick="navTo('spiritual')"><span class="item-icon">🙏</span>Spiritual</button>
+            <button class="nav-dropdown-item" onclick="navTo('personal')"><span class="item-icon">✨</span>Personal</button>
+            <button class="nav-dropdown-item" onclick="navTo('health')"><span class="item-icon">💪</span>Health</button>
+            <button class="nav-dropdown-item" onclick="navTo('career')"><span class="item-icon">💼</span>Career</button>
+            <button class="nav-dropdown-item" onclick="navTo('financial')"><span class="item-icon">💰</span>Financial</button>
+            <button class="nav-dropdown-item" onclick="navTo('learning')"><span class="item-icon">🧠</span>Learning</button>
+            <button class="nav-dropdown-item" onclick="navTo('relationship')"><span class="item-icon">❤️</span>Relationship</button>
+            <button class="nav-dropdown-item" onclick="navTo('projects')"><span class="item-icon">🗂️</span>Projects</button>
+            <button class="nav-dropdown-item" onclick="navTo('other')"><span class="item-icon">⭐</span>Other</button>
+          </div>
+        </div>
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-btn" onclick="toggleDropdown(this)">
+            Reminders
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="nav-dropdown-menu">
+            <button class="nav-dropdown-item" onclick="closeAllDropdowns();showModal('reminder-modal')"><span class="item-icon">➕</span>Add Reminder</button>
+            <button class="nav-dropdown-item" onclick="closeAllDropdowns();window.scrollTo({top:0,behavior:'smooth'})"><span class="item-icon">🔔</span>View Today's</button>
+          </div>
+        </div>
+      </div>
+      <div class="nav-right">
+        <div class="nav-clock" id="nav-clock"></div>
+        <div class="nav-user">
+          <div class="nav-avatar" id="nav-avatar">?</div>
+          <span id="nav-name"></span>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="doLogout()">Sign Out</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main">
+    <!-- REMINDERS STRIP -->
+    <div class="reminders-strip">
+      <div class="reminders-strip-label">🔔 Today</div>
+      <div class="reminders-strip-items" id="reminders-strip-items"><span class="reminders-strip-empty">No reminders today</span></div>
+      <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);flex-shrink:0;" onclick="showModal('reminder-modal')">+ Add</button>
+    </div>
+
+    <!-- SCRIPTURE -->
+    <div class="scripture-card">
+      <div class="scripture-day" id="scripture-day"></div>
+      <div id="scripture-content"><div class="scripture-loading"><div class="spinner"></div><span>Loading today's scripture…</span></div></div>
+    </div>
+
+    <!-- WHAT TO TRACK -->
+    <div class="track-header">What would you like to track today?</div>
+    <div class="track-sub">Select a category to log your progress</div>
+    <div class="category-grid">
+      <div class="cat-btn" id="cat-reading"      onclick="togglePanel('reading')"><div class="cat-icon">📚</div><div class="cat-label">Reading</div></div>
+      <div class="cat-btn" id="cat-spiritual"    onclick="togglePanel('spiritual')"><div class="cat-icon">🙏</div><div class="cat-label">Spiritual</div></div>
+      <div class="cat-btn" id="cat-personal"     onclick="togglePanel('personal')"><div class="cat-icon">✨</div><div class="cat-label">Personal</div></div>
+      <div class="cat-btn" id="cat-health"       onclick="togglePanel('health')"><div class="cat-icon">💪</div><div class="cat-label">Health</div></div>
+      <div class="cat-btn" id="cat-career"       onclick="togglePanel('career')"><div class="cat-icon">💼</div><div class="cat-label">Career</div></div>
+      <div class="cat-btn" id="cat-financial"    onclick="togglePanel('financial')"><div class="cat-icon">💰</div><div class="cat-label">Financial</div></div>
+      <div class="cat-btn" id="cat-learning"     onclick="togglePanel('learning')"><div class="cat-icon">🧠</div><div class="cat-label">Learning</div></div>
+      <div class="cat-btn" id="cat-relationship" onclick="togglePanel('relationship')"><div class="cat-icon">❤️</div><div class="cat-label">Relationship</div></div>
+      <div class="cat-btn" id="cat-projects"     onclick="togglePanel('projects')"><div class="cat-icon">🗂️</div><div class="cat-label">Projects</div></div>
+      <div class="cat-btn" id="cat-other"        onclick="togglePanel('other')"><div class="cat-icon">⭐</div><div class="cat-label">Other</div></div>
+    </div>
+
+    <!-- READING PANEL -->
+    <div class="tracker-panel" id="panel-reading">
+      <div class="panel-title">📚 Reading</div>
+      <div class="panel-sub">Track your books by month — set goals and log progress</div>
+      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" onclick="showModal('book-modal')">+ Add Book</button>
+        <button class="btn btn-ghost btn-sm" onclick="showModal('read-goal-modal')">Set Monthly Goal</button>
+      </div>
+      <div class="month-tabs" id="reading-month-tabs"></div>
+      <div id="reading-goal-display" style="font-size:12px;color:var(--text-muted);margin-bottom:16px;"></div>
+      <div id="book-list"></div>
+    </div>
+
+    <!-- HEALTH PANEL -->
+    <div class="tracker-panel" id="panel-health">
+      <div class="panel-title">💪 Health</div>
+      <div class="panel-sub">Check off days you worked out — starting with the current month</div>
+      <div id="health-weeks"></div>
+      <div style="margin-top:24px;">
+        <label class="form-label">Additional Notes</label>
+        <textarea id="health-notes" placeholder="Feelings, PRs, goals…"></textarea>
+        <button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="saveHealthNote()">Save Note</button>
+      </div>
+      <div class="entry-list" id="health-notes-list"></div>
+    </div>
+
+    <!-- GENERIC PANELS -->
+    <div class="tracker-panel" id="panel-spiritual">   <div class="panel-title">🙏 Spiritual</div>   <div class="panel-sub">Log spiritual practices, prayer, and reflections</div>   <div id="form-spiritual"></div><div class="entry-list" id="list-spiritual"></div></div>
+    <div class="tracker-panel" id="panel-personal">    <div class="panel-title">✨ Personal</div>    <div class="panel-sub">Track personal goals, habits, and growth</div>               <div id="form-personal"></div><div class="entry-list" id="list-personal"></div></div>
+    <div class="tracker-panel" id="panel-career">      <div class="panel-title">💼 Career</div>      <div class="panel-sub">Log career goals, wins, and action items</div>               <div id="form-career"></div><div class="entry-list" id="list-career"></div></div>
+    <div class="tracker-panel" id="panel-financial">   <div class="panel-title">💰 Financial</div>   <div class="panel-sub">Track financial goals and money habits</div>                  <div id="form-financial"></div><div class="entry-list" id="list-financial"></div></div>
+    <div class="tracker-panel" id="panel-learning">    <div class="panel-title">🧠 Learning</div>    <div class="panel-sub">Log courses, skills, and study sessions</div>                  <div id="form-learning"></div><div class="entry-list" id="list-learning"></div></div>
+    <div class="tracker-panel" id="panel-relationship"><div class="panel-title">❤️ Relationship</div><div class="panel-sub">Track relationship goals and quality time</div>              <div id="form-relationship"></div><div class="entry-list" id="list-relationship"></div></div>
+    <div class="tracker-panel" id="panel-projects">    <div class="panel-title">🗂️ Projects</div>   <div class="panel-sub">Track project progress and milestones</div>                    <div id="form-projects"></div><div class="entry-list" id="list-projects"></div></div>
+    <div class="tracker-panel" id="panel-other">       <div class="panel-title">⭐ Other</div>       <div class="panel-sub">Anything else you want to keep track of</div>                 <div id="form-other"></div><div class="entry-list" id="list-other"></div></div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="reminder-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Set a Reminder</div><button class="modal-close" onclick="closeModal('reminder-modal')">✕</button></div>
+    <div class="form-group"><label class="form-label">Reminder</label><input type="text" id="rm-title" placeholder="What do you need to remember?"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Date</label><input type="date" id="rm-date"></div>
+      <div class="form-group"><label class="form-label">Time</label><input type="time" id="rm-time"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Repeat</label><select id="rm-repeat"><option value="none">No repeat</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></div>
+    <div class="form-group"><label class="form-label">Note (optional)</label><textarea id="rm-note" placeholder="Extra details…" style="min-height:60px;"></textarea></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('reminder-modal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveReminder()">Save Reminder</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="book-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Add a Book</div><button class="modal-close" onclick="closeModal('book-modal')">✕</button></div>
+    <div class="form-group"><label class="form-label">Title</label><input type="text" id="bk-title" placeholder="Book title"></div>
+    <div class="form-group"><label class="form-label">Author</label><input type="text" id="bk-author" placeholder="Author name"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Genre</label><input type="text" id="bk-genre" placeholder="Fiction, Self-help…"></div>
+      <div class="form-group"><label class="form-label">Status</label><select id="bk-status"><option value="reading">Currently Reading</option><option value="finished">Finished</option><option value="wishlist">Want to Read</option></select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Month</label><input type="month" id="bk-month"></div>
+    <div class="form-group"><label class="form-label">Notes / Takeaways</label><textarea id="bk-notes" placeholder="Key quotes, insights…"></textarea></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('book-modal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveBook()">Add Book</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="read-goal-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Monthly Reading Goal</div><button class="modal-close" onclick="closeModal('read-goal-modal')">✕</button></div>
+    <div class="form-group"><label class="form-label">Month</label><input type="month" id="rg-month"></div>
+    <div class="form-group"><label class="form-label">Books to Read</label><input type="number" id="rg-books" placeholder="e.g. 2" min="1"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('read-goal-modal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveReadGoal()">Save Goal</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-book-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Edit Book</div><button class="modal-close" onclick="closeModal('edit-book-modal')">✕</button></div>
+    <input type="hidden" id="edit-book-id">
+    <div class="form-group"><label class="form-label">Title</label><input type="text" id="edit-bk-title" placeholder="Book title"></div>
+    <div class="form-group"><label class="form-label">Author</label><input type="text" id="edit-bk-author" placeholder="Author name"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Genre</label><input type="text" id="edit-bk-genre" placeholder="Fiction, Self-help…"></div>
+      <div class="form-group"><label class="form-label">Status</label><select id="edit-bk-status"><option value="reading">Currently Reading</option><option value="finished">Finished</option><option value="wishlist">Want to Read</option></select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Notes / Takeaways</label><textarea id="edit-bk-notes" placeholder="Key quotes, insights…"></textarea></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('edit-book-modal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveEditBook()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-health-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Edit Health Note</div><button class="modal-close" onclick="closeModal('edit-health-modal')">✕</button></div>
+    <input type="hidden" id="edit-health-id">
+    <div class="form-group"><label class="form-label">Note</label><textarea id="edit-health-note" placeholder="Feelings, PRs, goals…" style="min-height:100px;"></textarea></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('edit-health-modal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveEditHealthNote()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-entry-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Edit Entry</div><button class="modal-close" onclick="closeModal('edit-entry-modal')">✕</button></div>
+    <input type="hidden" id="edit-entry-cat">
+    <input type="hidden" id="edit-entry-id">
+    <div class="form-group"><label class="form-label">Title</label><input type="text" id="edit-entry-title" placeholder="Title or description"></div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea id="edit-entry-note" placeholder="Details, reflections, progress…"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Frequency</label><select id="edit-entry-freq"><option value="">One-time</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></div>
+      <div class="form-group"><label class="form-label">Due Date</label><input type="date" id="edit-entry-due"></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('edit-entry-modal')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveEditEntry()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div id="reminder-alerts"></div>
+
+<script>
+// ══ SUPABASE ══
+const SB_URL='https://qvjpxbewmzoptcephoxa.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF2anB4YmV3bXpvcHRjZXBob3hhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNTAxMjAsImV4cCI6MjA4NzcyNjEyMH0.Yk-FI1ogLjtoJUwcQ6bHlX3rmccCbN4F26t_aFwcWD8';
+
+async function sbQ(path,opts={}){
+  const method = opts.method || 'GET';
+  const extraHeaders = opts.headers || {};
+  const headers = {
+    'apikey': SB_KEY,
+    'Authorization': 'Bearer ' + SB_KEY,
+    'Content-Type': 'application/json',
+  };
+  Object.assign(headers, extraHeaders);
+  const fetchOpts = { method, headers };
+  if(opts.body) fetchOpts.body = opts.body;
+  const res = await fetch(SB_URL + path, fetchOpts);
+  if(!res.ok){const t=await res.text();throw new Error(t);}
+  const txt=await res.text();
+  return txt?JSON.parse(txt):[];
+}
+async function dbGet(uid,key){
+  try{const r=await sbQ(`/rest/v1/jarvis_data?user_id=eq.${uid}&key=eq.${encodeURIComponent(key)}&select=value`);return r.length?r[0].value:null;}catch{return null;}
+}
+async function dbSet(uid,key,value){
+  try{await sbQ('/rest/v1/jarvis_data',{method:'POST',headers:{Prefer:'resolution=merge-duplicates'},body:JSON.stringify({user_id:uid,key,value})});}catch(e){console.warn('save failed',e);}
+}
+
+// ══ STATE ══
+let currentUser=null;
+let D={reminders:[],books:[],readGoals:{},health:{},entries:{}};
+const _pt={};
+function persist(k){clearTimeout(_pt[k]);_pt[k]=setTimeout(()=>dbSet(currentUser.id,k,D[k]),500);}
+
+// ══ HELPERS ══
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function today(){return new Date().toISOString().split('T')[0];}
+function now_(){return new Date().toISOString();}
+function currentMonth(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
+function fmt(d){if(!d)return'';try{return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch{return d;}}
+function fmtMonth(m){if(!m)return'';const[y,mo]=m.split('-');return new Date(y,mo-1).toLocaleDateString('en-US',{month:'long',year:'numeric'});}
+
+function showSync(msg,type='ok'){
+  let el=document.getElementById('sync-status');
+  if(!el){el=document.createElement('div');el.id='sync-status';document.body.appendChild(el);}
+  el.textContent=msg;
+  el.style.cssText=`position:fixed;bottom:20px;right:20px;padding:10px 18px;border-radius:10px;font-size:12px;font-family:'DM Sans',sans-serif;z-index:999;opacity:1;transition:opacity .4s;box-shadow:0 2px 12px rgba(0,0,0,.1);background:${type==='ok'?'#eff6ff':'#fee2e2'};color:${type==='ok'?'#1d4ed8':'#dc2626'};border:1px solid ${type==='ok'?'#bfdbfe':'#fca5a5'};`;
+  clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';},3000);
+}
+
+// ══ AUTH ══
+function switchLoginTab(tab){
+  document.querySelectorAll('.login-tab').forEach((t,i)=>t.classList.toggle('active',i===(tab==='login'?0:1)));
+  document.getElementById('login-form').style.display=tab==='login'?'':'none';
+  document.getElementById('register-form').style.display=tab==='register'?'':'none';
+  document.getElementById('login-error').classList.remove('show');
+  document.getElementById('login-success').classList.remove('show');
+}
+function showErr(msg){const e=document.getElementById('login-error');e.textContent=msg;e.classList.add('show');}
+function showOk(msg){const e=document.getElementById('login-success');e.textContent=msg;e.classList.add('show');}
+
+async function doLogin(){
+  const username=document.getElementById('login-username').value.trim();
+  const password=document.getElementById('login-password').value;
+  if(!username||!password){showErr('Please enter username and password.');return;}
+  try{
+    const rows=await sbQ(`/rest/v1/jarvis_users?username=eq.${encodeURIComponent(username)}&select=*`);
+    if(!rows.length){showErr('Username not found.');return;}
+    const user=rows[0];
+    if(user.password_hash!==btoa(password)){showErr('Incorrect password.');return;}
+    await startApp(user);
+  }catch(e){showErr('Connection error. Please try again.');console.error(e);}
+}
+
+async function doRegister(){
+  const firstname=document.getElementById('reg-firstname').value.trim();
+  const username=document.getElementById('reg-username').value.trim();
+  const password=document.getElementById('reg-password').value;
+  if(!firstname||!username||!password){showErr('All fields are required.');return;}
+  if(password.length<6){showErr('Password must be at least 6 characters.');return;}
+  try{
+    const existing=await sbQ(`/rest/v1/jarvis_users?username=eq.${encodeURIComponent(username)}&select=id`);
+    if(existing.length){showErr('Username already taken.');return;}
+    const result=await sbQ('/rest/v1/jarvis_users',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({firstname,username,password_hash:btoa(password),created_at:new Date().toISOString()})});
+    if(result&&result[0]){showOk('Account created! Signing you in…');setTimeout(()=>startApp(result[0]),800);}
+  }catch(e){showErr('Error creating account. Try again.');console.error(e);}
+}
+
+function doLogout(){
+  currentUser=null;D={reminders:[],books:[],readGoals:{},health:{},entries:{}};
+  document.getElementById('login-screen').classList.add('active');
+  document.getElementById('app-screen').classList.remove('active');
+  document.getElementById('login-username').value='';
+  document.getElementById('login-password').value='';
+  document.getElementById('login-error').classList.remove('show');
+}
+
+async function startApp(user){
+  currentUser=user;
+  document.getElementById('login-screen').classList.remove('active');
+  document.getElementById('app-screen').classList.add('active');
+  const name=user.firstname||user.username;
+  document.getElementById('nav-name').textContent=name;
+  document.getElementById('nav-avatar').textContent=name[0].toUpperCase();
+  showSync('⟳ Loading…');
+  try{
+    const keys=['reminders','books','readGoals','health','entries'];
+    const results=await Promise.all(keys.map(k=>dbGet(user.id,k)));
+    keys.forEach((k,i)=>{if(results[i]!==null)D[k]=results[i];});
+    showSync('✓ Synced');
+  }catch{showSync('⚠ Offline','error');}
+  initApp();
+}
+
+// ══ CLOCK ══
+function updateClock(){const d=new Date();const el=document.getElementById('nav-clock');if(el)el.textContent=d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});}
+setInterval(updateClock,1000);updateClock();
+
+// ══ DROPDOWNS ══
+function closeAllDropdowns(){
+  document.querySelectorAll('.nav-dropdown-menu').forEach(m=>m.classList.remove('open'));
+  document.querySelectorAll('.nav-dropdown-btn').forEach(b=>b.classList.remove('open'));
+}
+function toggleDropdown(btn){
+  const menu=btn.nextElementSibling;const isOpen=menu.classList.contains('open');
+  closeAllDropdowns();
+  if(!isOpen){menu.classList.add('open');btn.classList.add('open');}
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.nav-dropdown'))closeAllDropdowns();});
+function navTo(cat){
+  closeAllDropdowns();togglePanel(cat);
+  setTimeout(()=>{document.getElementById('panel-'+cat)?.scrollIntoView({behavior:'smooth',block:'start'});},120);
+}
+
+// ══ MODALS ══
+function showModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.addEventListener('click',e=>{if(e.target.classList.contains('modal-overlay'))e.target.classList.remove('open');});
+
+// ══ SCRIPTURE ══
+async function loadScripture(){
+  const d=new Date();
+  document.getElementById('scripture-day').textContent=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}).toUpperCase();
+  const cacheKey='jarvis_scripture_'+today();
+  const cached=sessionStorage.getItem(cacheKey);
+  if(cached){renderScripture(JSON.parse(cached));return;}
+  const themes=['productivity and diligence','rest and peace in God','wisdom and discernment','faith and perseverance','your God-given purpose','gratitude and thankfulness','strength in difficult times','hope and encouragement','excellence in all you do','trusting God with your plans'];
+  const theme=themes[d.getDay()%themes.length];
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',max_tokens:600,
+        messages:[{role:'user',content:`Today's theme is "${theme}". Choose one powerful KJV Bible verse that speaks to work, productivity, rest, or purpose on this theme. Then write a warm 2-3 sentence daily inspiration and a bold one-sentence daily mantra, both rooted in that scripture.\n\nRespond ONLY with valid JSON (no markdown, no backticks):\n{"verse":"full KJV verse text","reference":"Book Chapter:Verse","inspiration":"2-3 sentence inspiration","mantra":"one powerful sentence"}`}]
+      })
+    });
+    const data=await resp.json();
+    const text=(data.content||[]).map(c=>c.text||'').join('').replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(text);
+    sessionStorage.setItem(cacheKey,JSON.stringify(parsed));
+    renderScripture(parsed);
+  }catch{
+    renderScripture({verse:"Commit thy works unto the LORD, and thy thoughts shall be established.",reference:"Proverbs 16:3",inspiration:"God invites you to bring every task, goal, and plan before Him today. When you surrender your work to His guidance, He gives you clarity, purpose, and peace that surpasses all understanding.",mantra:"I commit my work to the Lord, and He establishes my steps."});
+  }
+}
+function renderScripture(s){
+  document.getElementById('scripture-content').innerHTML=`
+    <div class="scripture-verse">"${s.verse}"</div>
+    <div class="scripture-ref">— ${s.reference}</div>
+    <div class="scripture-divider"></div>
+    <div class="mantra-label">Today's Inspiration</div>
+    <div class="mantra-text" style="margin-bottom:16px;">${s.inspiration}</div>
+    <div class="mantra-label">Daily Mantra</div>
+    <div class="mantra-text" style="font-weight:600;color:var(--blue-700);font-style:normal;">${s.mantra}</div>`;
+}
+
+// ══ REMINDERS ══
+function saveReminder(){
+  const title=document.getElementById('rm-title').value.trim();if(!title)return;
+  D.reminders.push({id:uid(),title,date:document.getElementById('rm-date').value,time:document.getElementById('rm-time').value,repeat:document.getElementById('rm-repeat').value,note:document.getElementById('rm-note').value,created:now_()});
+  persist('reminders');closeModal('reminder-modal');
+  ['rm-title','rm-date','rm-time','rm-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('rm-repeat').value='none';
+  renderReminders();
+}
+function deleteReminder(id){D.reminders=D.reminders.filter(r=>r.id!==id);persist('reminders');renderReminders();}
+function renderReminders(){
+  const t=today();const strip=document.getElementById('reminders-strip-items');
+  const todays=D.reminders.filter(r=>r.date===t||!r.date);
+  strip.innerHTML=todays.length?todays.map(r=>`<div class="reminder-chip">🔔 ${r.title}${r.time?` · ${r.time}`:''}<span onclick="deleteReminder('${r.id}')" style="cursor:pointer;opacity:.6;margin-left:2px;">✕</span></div>`).join(''):`<span class="reminders-strip-empty">No reminders today — you're clear ✓</span>`;
+}
+function checkReminders(){
+  const n=new Date();
+  D.reminders.forEach(r=>{if(r.fired||!r.date||!r.time)return;const dt=new Date(r.date+'T'+r.time);if(Math.abs(n-dt)<32000){r.fired=true;persist('reminders');showReminderAlert(r.title,r.note);}});
+}
+setInterval(checkReminders,30000);
+function showReminderAlert(title,note){
+  const div=document.createElement('div');
+  div.style.cssText='position:fixed;top:72px;right:20px;background:white;border:1.5px solid var(--blue-400);border-radius:12px;padding:16px 20px;z-index:400;max-width:280px;box-shadow:var(--shadow-lg);animation:fadeUp .3s ease;';
+  div.innerHTML=`<div style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--blue-600);margin-bottom:4px;">🔔 REMINDER</div><div style="font-size:14px;font-weight:600;">${title}</div>${note?`<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${note}</div>`:''}<button onclick="this.parentElement.remove()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;">✕</button>`;
+  document.getElementById('reminder-alerts').appendChild(div);setTimeout(()=>div.remove(),8000);
+}
+
+// ══ PANELS ══
+function togglePanel(cat){
+  const panel=document.getElementById('panel-'+cat),btn=document.getElementById('cat-'+cat);
+  const isOpen=panel.classList.contains('open');
+  document.querySelectorAll('.tracker-panel').forEach(p=>p.classList.remove('open'));
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  if(!isOpen){panel.classList.add('open');btn.classList.add('active');}
+}
+
+// ══ GENERIC CATEGORIES ══
+const GENERIC=['spiritual','personal','career','financial','learning','relationship','projects','other'];
+function buildGenericForm(cat){
+  const el=document.getElementById('form-'+cat);
+  if(!el||el.dataset.built)return;el.dataset.built='1';
+  el.innerHTML=`
+    <div class="form-group"><label class="form-label">What did you work on?</label><input type="text" id="${cat}-title" placeholder="Brief title or description…"></div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea id="${cat}-note" placeholder="Details, reflections, progress…"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Frequency</label><select id="${cat}-freq"><option value="">One-time</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></div>
+      <div class="form-group"><label class="form-label">Due Date</label><input type="date" id="${cat}-due"></div>
+    </div>
+    <div class="reminder-subform">
+      <div class="reminder-subform-title">🔔 Set a Reminder?</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Date</label><input type="date" id="${cat}-rdate"></div>
+        <div class="form-group"><label class="form-label">Time</label><input type="time" id="${cat}-rtime"></div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm" style="margin-top:16px;" onclick="saveGenericEntry('${cat}')">Save Entry</button>`;
+}
+function saveGenericEntry(cat){
+  const title=document.getElementById(`${cat}-title`).value.trim();if(!title)return;
+  if(!D.entries[cat])D.entries[cat]=[];
+  const entry={id:uid(),title,note:document.getElementById(`${cat}-note`).value,freq:document.getElementById(`${cat}-freq`).value,due:document.getElementById(`${cat}-due`).value,created:now_()};
+  D.entries[cat].unshift(entry);persist('entries');
+  const rDate=document.getElementById(`${cat}-rdate`).value;
+  const rTime=document.getElementById(`${cat}-rtime`).value;
+  if(rDate){D.reminders.push({id:uid(),title:`[${cat.charAt(0).toUpperCase()+cat.slice(1)}] ${title}`,date:rDate,time:rTime,repeat:'none',note:entry.note,created:now_()});persist('reminders');renderReminders();}
+  [`${cat}-title`,`${cat}-note`,`${cat}-due`,`${cat}-rdate`,`${cat}-rtime`].forEach(id=>document.getElementById(id).value='');
+  document.getElementById(`${cat}-freq`).value='';
+  renderGenericList(cat);showSync('✓ Saved');
+}
+function deleteEntry(cat,id){D.entries[cat]=(D.entries[cat]||[]).filter(e=>e.id!==id);persist('entries');renderGenericList(cat);}
+function openEditEntry(cat,id){
+  const entry=(D.entries[cat]||[]).find(e=>e.id===id);if(!entry)return;
+  document.getElementById('edit-entry-cat').value=cat;
+  document.getElementById('edit-entry-id').value=id;
+  document.getElementById('edit-entry-title').value=entry.title||'';
+  document.getElementById('edit-entry-note').value=entry.note||'';
+  document.getElementById('edit-entry-freq').value=entry.freq||'';
+  document.getElementById('edit-entry-due').value=entry.due||'';
+  showModal('edit-entry-modal');
+}
+function saveEditEntry(){
+  const cat=document.getElementById('edit-entry-cat').value;
+  const id=document.getElementById('edit-entry-id').value;
+  const title=document.getElementById('edit-entry-title').value.trim();
+  if(!title)return;
+  const entries=D.entries[cat]||[];
+  const idx=entries.findIndex(e=>e.id===id);
+  if(idx===-1)return;
+  entries[idx]={...entries[idx],title,note:document.getElementById('edit-entry-note').value,freq:document.getElementById('edit-entry-freq').value,due:document.getElementById('edit-entry-due').value};
+  persist('entries');closeModal('edit-entry-modal');renderGenericList(cat);showSync('✓ Updated');
+}
+function renderGenericList(cat){
+  const el=document.getElementById('list-'+cat);
+  const entries=D.entries[cat]||[];
+  if(!entries.length){el.innerHTML=`<div class="empty"><div class="empty-icon">◎</div>No entries yet — add one above</div>`;return;}
+  el.innerHTML=entries.map(e=>`
+    <div class="entry-item">
+      <div class="entry-body">
+        <div class="entry-title">${e.title}</div>
+        <div class="entry-meta">
+          <span>📅 ${fmt(e.created)}</span>
+          ${e.due?`<span>Due: ${fmt(e.due)}</span>`:''}
+          ${e.freq?`<span class="tag tag-blue">${e.freq}</span>`:''}
+        </div>
+        ${e.note?`<div class="entry-note">${e.note}</div>`:''}
+      </div>
+      <div class="entry-actions" style="display:flex;gap:4px;"><button class="icon-btn edit-btn" onclick="openEditEntry('${cat}','${e.id}')">✏️</button><button class="icon-btn" onclick="deleteEntry('${cat}','${e.id}')">🗑</button></div>
+    </div>`).join('');
+}
+
+// ══ READING ══
+let readingMonth=currentMonth();
+function renderReadingMonthTabs(){
+  const d=new Date();const months=[];
+  for(let i=0;i<6;i++){const dd=new Date(d.getFullYear(),d.getMonth()-i,1);months.push(`${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}`);}
+  document.getElementById('reading-month-tabs').innerHTML=months.map(m=>`<div class="month-tab ${m===readingMonth?'active':''}" onclick="selectReadingMonth('${m}')">${fmtMonth(m)}</div>`).join('');
+}
+function selectReadingMonth(m){readingMonth=m;renderReadingMonthTabs();renderBooks();}
+const spineColors=['#2563eb','#7c3aed','#db2777','#059669','#d97706','#dc2626','#0891b2'];
+function saveBook(){
+  const title=document.getElementById('bk-title').value.trim();if(!title)return;
+  D.books.push({id:uid(),title,author:document.getElementById('bk-author').value,genre:document.getElementById('bk-genre').value,status:document.getElementById('bk-status').value,month:document.getElementById('bk-month').value||currentMonth(),notes:document.getElementById('bk-notes').value,created:now_()});
+  persist('books');closeModal('book-modal');
+  ['bk-title','bk-author','bk-genre','bk-notes'].forEach(id=>document.getElementById(id).value='');
+  renderBooks();showSync('✓ Book added');
+}
+function deleteBook(id){D.books=D.books.filter(b=>b.id!==id);persist('books');renderBooks();}
+function saveReadGoal(){
+  const month=document.getElementById('rg-month').value||currentMonth();
+  const books=parseInt(document.getElementById('rg-books').value)||0;
+  D.readGoals[month]=books;persist('readGoals');closeModal('read-goal-modal');renderBooks();
+}
+function renderBooks(){
+  renderReadingMonthTabs();
+  const books=D.books.filter(b=>b.month===readingMonth);
+  const goal=D.readGoals[readingMonth];
+  const finished=books.filter(b=>b.status==='finished').length;
+  const goalEl=document.getElementById('reading-goal-display');
+  if(goal){goalEl.innerHTML=`<span style="color:var(--blue-700);font-weight:600;">${finished}/${goal}</span> books finished ${fmtMonth(readingMonth)} ${finished>=goal?'🎉 Goal reached!':''}`;}
+  else{goalEl.textContent='No goal set — tap "Set Monthly Goal" to add one.';}
+  const el=document.getElementById('book-list');
+  if(!books.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📚</div>No books for ${fmtMonth(readingMonth)} yet</div>`;return;}
+  el.innerHTML=books.map((b,i)=>`
+    <div class="book-card">
+      <div class="book-spine" style="background:${spineColors[i%spineColors.length]}"></div>
+      <div class="book-body">
+        <div class="book-title">${b.title}</div>
+        ${b.author?`<div class="book-author">by ${b.author}</div>`:''}
+        ${b.genre?`<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${b.genre}</div>`:''}
+        <div class="book-badge badge-${b.status}">${{reading:'Reading',finished:'Finished ✓',wishlist:'Want to Read'}[b.status]}</div>
+        ${b.notes?`<div style="font-size:12px;color:var(--text-light);margin-top:8px;font-style:italic;">"${b.notes.substring(0,120)}${b.notes.length>120?'…':''}"</div>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;"><button class="icon-btn edit-btn" onclick="openEditBook('${b.id}')">✏️</button><button class="icon-btn" onclick="deleteBook('${b.id}')">🗑</button></div>
+    </div>`).join('');
+}
+
+// ══ HEALTH ══
+function renderHealthWeeks(){
+  const el=document.getElementById('health-weeks');
+  const n=new Date(),y=n.getFullYear(),mo=n.getMonth();
+  const firstDay=new Date(y,mo,1),lastDay=new Date(y,mo+1,0);
+  let html=`<div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:14px;">${n.toLocaleDateString('en-US',{month:'long',year:'numeric'})} — Check off days you worked out</div>`;
+  let weekNum=1,d=new Date(firstDay);
+  const dow=d.getDay();d.setDate(d.getDate()-(dow===0?6:dow-1));
+  while(d<=lastDay){
+    const weekKey=`${y}-${String(mo+1).padStart(2,'0')}-w${weekNum}`;
+    const weekData=D.health[weekKey]||{};
+    const days=[];
+    for(let i=0;i<7;i++){const dd=new Date(d);dd.setDate(d.getDate()+i);if(dd.getMonth()===mo)days.push(dd);}
+    if(days.length){
+      const checked=Object.values(weekData).filter(Boolean).length;
+      html+=`<div class="week-row">
+        <div class="week-label">Week ${weekNum} · ${days[0].toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${days[days.length-1].toLocaleDateString('en-US',{month:'short',day:'numeric'})} <span style="float:right;color:var(--blue-600);font-size:12px;">${checked}/${days.length} days</span></div>
+        <div class="day-checks">
+          ${days.map(dd=>{
+            const ds=dd.toISOString().split('T')[0];
+            const ck=weekData[ds]||false;
+            return`<label class="day-check"><input type="checkbox" ${ck?'checked':''} onchange="toggleHealthDay('${weekKey}','${ds}',this.checked)"><div class="day-check-box">✓</div><div class="day-check-label">${dd.toLocaleDateString('en-US',{weekday:'short'})}</div></label>`;
+          }).join('')}
+        </div>
+      </div>`;
+      weekNum++;
+    }
+    d.setDate(d.getDate()+7);
+  }
+  el.innerHTML=html;
+}
+function toggleHealthDay(wk,ds,checked){
+  if(!D.health[wk])D.health[wk]={};
+  D.health[wk][ds]=checked;persist('health');
+  // refresh count without full re-render
+  renderHealthWeeks();
+}
+function saveHealthNote(){
+  const note=document.getElementById('health-notes').value.trim();if(!note)return;
+  if(!D.entries['health'])D.entries['health']=[];
+  D.entries['health'].unshift({id:uid(),title:'Health Note',note,created:now_()});
+  persist('entries');document.getElementById('health-notes').value='';renderHealthNotes();showSync('✓ Saved');
+}
+function renderHealthNotes(){
+  const el=document.getElementById('health-notes-list');
+  const entries=D.entries['health']||[];
+  if(!entries.length){el.innerHTML='';return;}
+  el.innerHTML=entries.map(e=>`
+    <div class="entry-item">
+      <div class="entry-body"><div class="entry-meta"><span>📅 ${fmt(e.created)}</span></div><div class="entry-note">${e.note}</div></div>
+      <div class="entry-actions" style="display:flex;gap:4px;"><button class="icon-btn edit-btn" onclick="openEditHealthNote('${e.id}')">✏️</button><button class="icon-btn" onclick="deleteHealthNote('${e.id}')">🗑</button></div>
+    </div>`).join('');
+}
+function deleteHealthNote(id){D.entries['health']=(D.entries['health']||[]).filter(e=>e.id!==id);persist('entries');renderHealthNotes();}
+function openEditHealthNote(id){
+  const entry=(D.entries['health']||[]).find(e=>e.id===id);if(!entry)return;
+  document.getElementById('edit-health-id').value=id;
+  document.getElementById('edit-health-note').value=entry.note||'';
+  showModal('edit-health-modal');
+}
+function saveEditHealthNote(){
+  const id=document.getElementById('edit-health-id').value;
+  const note=document.getElementById('edit-health-note').value.trim();if(!note)return;
+  const entries=D.entries['health']||[];
+  const idx=entries.findIndex(e=>e.id===id);if(idx===-1)return;
+  entries[idx]={...entries[idx],note};
+  persist('entries');closeModal('edit-health-modal');renderHealthNotes();showSync('✓ Updated');
+}
+function openEditBook(id){
+  const book=D.books.find(b=>b.id===id);if(!book)return;
+  document.getElementById('edit-book-id').value=id;
+  document.getElementById('edit-bk-title').value=book.title||'';
+  document.getElementById('edit-bk-author').value=book.author||'';
+  document.getElementById('edit-bk-genre').value=book.genre||'';
+  document.getElementById('edit-bk-status').value=book.status||'reading';
+  document.getElementById('edit-bk-notes').value=book.notes||'';
+  showModal('edit-book-modal');
+}
+function saveEditBook(){
+  const id=document.getElementById('edit-book-id').value;
+  const title=document.getElementById('edit-bk-title').value.trim();if(!title)return;
+  const idx=D.books.findIndex(b=>b.id===id);if(idx===-1)return;
+  D.books[idx]={...D.books[idx],title,author:document.getElementById('edit-bk-author').value,genre:document.getElementById('edit-bk-genre').value,status:document.getElementById('edit-bk-status').value,notes:document.getElementById('edit-bk-notes').value};
+  persist('books');closeModal('edit-book-modal');renderBooks();showSync('✓ Updated');
+}
+
+// ══ INIT ══
+function initApp(){
+  const t=today(),m=currentMonth();
+  ['rm-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=t;});
+  ['bk-month','rg-month'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=m;});
+  GENERIC.forEach(cat=>{buildGenericForm(cat);renderGenericList(cat);});
+  renderReminders();
+  renderBooks();
+  renderHealthWeeks();
+  renderHealthNotes();
+  loadScripture();
+  document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+}
+
+/*
+  ── SUPABASE SQL SETUP ──
+  Run this once in your Supabase SQL Editor:
+
+  CREATE TABLE IF NOT EXISTS jarvis_users (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    firstname text,
+    username text UNIQUE NOT NULL,
+    password_hash text NOT NULL,
+    created_at timestamptz DEFAULT now()
+  );
+  ALTER TABLE jarvis_users ENABLE ROW LEVEL SECURITY;
+  CREATE POLICY "allow all" ON jarvis_users FOR ALL USING (true) WITH CHECK (true);
+
+  ALTER TABLE jarvis_data ADD COLUMN IF NOT EXISTS user_id uuid;
+  ALTER TABLE jarvis_data DROP CONSTRAINT IF EXISTS jarvis_data_pkey;
+  ALTER TABLE jarvis_data ADD PRIMARY KEY (user_id, key);
+*/
+</script>
+</body>
+</html>
