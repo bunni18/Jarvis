@@ -416,10 +416,17 @@ const SB_URL='https://qvjpxbewmzoptcephoxa.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF2anB4YmV3bXpvcHRjZXBob3hhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNTAxMjAsImV4cCI6MjA4NzcyNjEyMH0.Yk-FI1ogLjtoJUwcQ6bHlX3rmccCbN4F26t_aFwcWD8';
 
 async function sbQ(path,opts={}){
-  const res=await fetch(SB_URL+path,{
-    headers:{apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`,'Content-Type':'application/json',...(opts.headers||{})},
-    ...opts
-  });
+  const method = opts.method || 'GET';
+  const extraHeaders = opts.headers || {};
+  const headers = {
+    'apikey': SB_KEY,
+    'Authorization': 'Bearer ' + SB_KEY,
+    'Content-Type': 'application/json',
+  };
+  Object.assign(headers, extraHeaders);
+  const fetchOpts = { method, headers };
+  if(opts.body) fetchOpts.body = opts.body;
+  const res = await fetch(SB_URL + path, fetchOpts);
   if(!res.ok){const t=await res.text();throw new Error(t);}
   const txt=await res.text();
   return txt?JSON.parse(txt):[];
